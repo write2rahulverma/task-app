@@ -26,5 +26,8 @@ def create_app(config_name="default"):
 
     with app.app_context():
         from . import models
+        from .routes import users_bp, tasks_bp
+        app.register_blueprint(users_bp, url_prefix="/api")
+        app.register_blueprint(tasks_bp, url_prefix="/api")
 
     return app
