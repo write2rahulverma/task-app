@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from sqlalchemy.exc import IntegrityError
 from . import db
 from .models import Task, User
 
@@ -10,9 +11,19 @@ users_bp = Blueprint("users", __name__)
 @users_bp.route("/users", methods=["POST"])
 def create_user():
     data = request.get_json()
+
+    if not data or not data.get("username") or not data.get("email"):
+        return jsonify({"error", "Username and Email are required,"}), 400
+    
     user = User(username=data["username"], email=data["email"])
     db.session.add(user)
-    db.session.commit()
+
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": "Username or Email already exist."}), 409
+    
     return jsonify(user.to_dist()), 201
 
 @users_bp.route("/users", methods=["GET"])
@@ -26,20 +37,29 @@ def get_users():
 def get_tasks():
     status = request.args.get("status")
     query = Task.query
+
     if status:
         query = query.filter_by(status=status)
     tasks = query.order_by(Task.priority.desc()).all()
+
     return jsonify([t.to_dist() for t in tasks])
 
 @tasks_bp.route("/tasks", methods=["POST"])
 def create_task():
     data = request.get_json()
+
     if not data or not data.get("title"):
         return jsonify({"error": "Title is required."}), 400
+    if not data.get("user_id"):
+        return jsonify({"error": "User ID is required."}), 400
+    
+    user = User.query.get(data["user_id"])
+    if not user:
+        return jsonify({"error": f"No user found with id {data['user_id']}"}), 404
     
     task = Task(
         title=data["title"],
-        description=data["description"],
+        description=data.get("description", ""),
         user_id=data["user_id"],
         priority=data.get("priority", 1),
     )
