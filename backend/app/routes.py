@@ -13,7 +13,7 @@ def create_user():
     data = request.get_json()
 
     if not data or not data.get("username") or not data.get("email"):
-        return jsonify({"error", "Username and Email are required,"}), 400
+        return jsonify({"error": "Username and Email are required,"}), 400
     
     user = User(username=data["username"], email=data["email"])
     db.session.add(user)
@@ -24,12 +24,12 @@ def create_user():
         db.session.rollback()
         return jsonify({"error": "Username or Email already exist."}), 409
     
-    return jsonify(user.to_dist()), 201
+    return jsonify(user.to_dict()), 201
 
 @users_bp.route("/users", methods=["GET"])
 def get_users():
     users = User.query.all()
-    return jsonify([u.to_dist() for u in users])
+    return jsonify([u.to_dict() for u in users])
 
 # ------------ Task Routes ------------
 
@@ -42,7 +42,7 @@ def get_tasks():
         query = query.filter_by(status=status)
     tasks = query.order_by(Task.priority.desc()).all()
 
-    return jsonify([t.to_dist() for t in tasks])
+    return jsonify([t.to_dict() for t in tasks])
 
 @tasks_bp.route("/tasks", methods=["POST"])
 def create_task():
@@ -53,7 +53,7 @@ def create_task():
     if not data.get("user_id"):
         return jsonify({"error": "User ID is required."}), 400
     
-    user = User.query.get(data["user_id"])
+    user = db.session.get(User, data["user_id"])
     if not user:
         return jsonify({"error": f"No user found with id {data['user_id']}"}), 404
     
@@ -65,12 +65,12 @@ def create_task():
     )
     db.session.add(task)
     db.session.commit()
-    return jsonify(task.to_dist()), 201
+    return jsonify(task.to_dict()), 201
 
 @tasks_bp.route("/tasks/<int:task_id>", methods=["GET"])
 def get_task(task_id):
     task = Task.query.get_or_404(task_id)
-    return jsonify(task.to_dist())
+    return jsonify(task.to_dict())
 
 @tasks_bp.route("/tasks/<int:task_id>", methods=["PUT"])
 def update_task(task_id):
@@ -83,7 +83,7 @@ def update_task(task_id):
     task.priority = data.get("priority", task.priority)
 
     db.session.commit()
-    return jsonify(task.to_dist())
+    return jsonify(task.to_dict())
 
 @tasks_bp.route("/tasks/<int:task_id>", methods=["DELETE"])
 def delete_task(task_id):

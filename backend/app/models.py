@@ -10,7 +10,7 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     task = db.relationship("Task", backref="owner", lazy=True, cascade="all, delete-orphan")
 
-    def to_dist(self):
+    def to_dict(self):
         return {
             "id": self.id,
             "username": self.username,
@@ -29,7 +29,7 @@ class Task(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
-    def to_dist(self):
+    def to_dict(self):
         return {
             "id": self.id,
             "title": self.title,
