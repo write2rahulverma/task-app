@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 from . import db
 from .models import Task, User
+from .workers import worker, Job
 
 tasks_bp = Blueprint("tasks", __name__)
 users_bp = Blueprint("users", __name__)
@@ -65,6 +66,12 @@ def create_task():
     )
     db.session.add(task)
     db.session.commit()
+
+    worker.enqueue(Job("notify", {
+        "email": user.email,
+        "message": f"New task created: {task.title}",
+    }))
+    
     return jsonify(task.to_dict()), 201
 
 @tasks_bp.route("/tasks/<int:task_id>", methods=["GET"])
